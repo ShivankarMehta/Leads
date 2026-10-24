@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Live off-campus software internship openings for the 2027 batch — auto-fetched with direct apply links." />
+  <title>Leads — 2027 Software Internships</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="site-header" id="top">
+    <a class="brand" href="#top">
+      <span class="brand-mark">L</span>
+      <span class="brand-name">Leads</span>
+    </a>
+    <nav class="nav">
+      <a href="#openings">Openings</a>
+      <a href="#portals">Career portals</a>
+      <button type="button" class="btn-refresh" id="refreshBtn" aria-label="Refresh latest internship openings from all job portals">
+        <span class="refresh-icon" aria-hidden="true"></span>
+        Refresh latest
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="hero-brand">Leads</p>
+      <h1 class="hero-title">2027 software internships, fetched live.</h1>
+      <p class="hero-sub">
+        Off-campus software roles for the 2027 batch — pulled automatically from public job boards, with direct apply URLs.
+      </p>
+      <div class="hero-cta">
+        <button type="button" class="btn-primary btn-refresh-alt" id="heroRefreshBtn">
+          Refresh latest openings
+        </button>
+        <a class="btn-ghost" href="#openings">Browse openings</a>
+      </div>
+      <p class="hero-meta" id="lastUpdated">Checking sources…</p>
+    </section>
+
+    <section class="filters" id="openings" aria-label="Search and filters">
+      <div class="filters-toolbar">
+        <p class="filters-heading">Internship openings</p>
+        <button type="button" class="btn-refresh btn-refresh-compact" id="listRefreshBtn" aria-label="Refresh latest internship openings">
+          <span class="refresh-icon" aria-hidden="true"></span>
+          Refresh latest
+        </button>
+      </div>
+      <div class="filters-row">
+        <label class="search-wrap">
+          <span class="sr-only">Search roles or companies</span>
+          <input type="search" id="searchInput" placeholder="Search role, company, skill…" autocomplete="off" />
+        </label>
+        <div class="filter-group">
+          <label>
+            <span class="sr-only">Location filter</span>
+            <select id="locationFilter">
+              <option value="focus" selected>India · Japan · Europe · USA</option>
+              <option value="india">India only</option>
+              <option value="japan">Japan</option>
+              <option value="europe">Europe</option>
+              <option value="usa">USA</option>
+              <option value="remote">Remote</option>
+              <option value="all">All locations</option>
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">Sort</span>
+            <select id="sortFilter">
+              <option value="newest">Newest first</option>
+              <option value="company">Company A–Z</option>
+              <option value="title">Role A–Z</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <fieldset class="role-filters">
+        <legend>Roles</legend>
+        <div class="role-checks" id="roleFilters" role="group" aria-label="Filter by role">
+          <label class="role-check"><input type="checkbox" name="role" value="sde" checked /> SDE</label>
+          <label class="role-check"><input type="checkbox" name="role" value="swe" checked /> SWE</label>
+          <label class="role-check"><input type="checkbox" name="role" value="devops" checked /> DevOps</label>
+          <label class="role-check"><input type="checkbox" name="role" value="frontend" /> Frontend</label>
+          <label class="role-check"><input type="checkbox" name="role" value="backend" /> Backend</label>
+          <label class="role-check"><input type="checkbox" name="role" value="fullstack" /> Full Stack</label>
+          <label class="role-check"><input type="checkbox" name="role" value="mobile" /> Mobile</label>
+          <label class="role-check"><input type="checkbox" name="role" value="data" /> Data</label>
+          <label class="role-check"><input type="checkbox" name="role" value="ml" /> ML / AI</label>
+          <label class="role-check"><input type="checkbox" name="role" value="qa" /> QA</label>
+          <label class="role-check"><input type="checkbox" name="role" value="security" /> Security</label>
+          <label class="role-check"><input type="checkbox" name="role" value="other" /> Other</label>
+        </div>
+      </fieldset>
+      <label class="role-check hide-applied-check">
+        <input type="checkbox" id="hideAppliedFilter" />
+        Hide already applied
+      </label>
+      <div class="stats" id="statsBar">
+        <span id="resultCount">0 openings</span>
+        <span class="dot" aria-hidden="true"></span>
+        <span id="sourceCount">0 sources</span>
+      </div>
+    </section>
+
+    <section class="listings" aria-live="polite">
+      <div class="loading" id="loadingState">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Refreshing latest internship roles from all important job portals…</p>
+      </div>
+      <div class="error" id="errorState" hidden>
+        <p id="errorMessage">Could not load listings.</p>
+        <button type="button" class="btn-primary" id="retryBtn">Try again</button>
+      </div>
+      <ul class="job-list" id="jobList"></ul>
+      <p class="empty" id="emptyState" hidden>No internships match your filters. Try other roles, clearing search, or switching location.</p>
+    </section>
+
+    <section class="portals" id="portals">
+      <h2>Internship portals by region</h2>
+      <p class="section-sub">India, Japan, Europe, USA/Canada, Latin America, and global boards — including Internshala, Unstop, Handshake, SimplifyJobs, EURES, Wantedly, and company career pages. Openings above are auto-fetched with direct Apply links.</p>
+      <div class="portal-regions" id="portalList"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><strong>Leads</strong> aggregates live job postings with direct apply links for students. Always verify dates and eligibility on the employer site before applying.</p>
+    <p class="footer-note">Sources: SimplifyJobs 2027 · ApplyGuy 2027 · LinkedIn · The Muse · Greenhouse · Ashby · Lever · Remote OK · Jobicy · Remotive · Arbeitnow</p>
+  </footer>
+
+  <script src="js/app.js" type="module"></script>
+</body>
+</html>
