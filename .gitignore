@@ -6,3 +6,9 @@ Thumbs.db
 node_modules/
 .env
 .env.*
+
+.sites-release/
+dist/
+leads-site.zip
+
+.openai/

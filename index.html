@@ -3,137 +3,251 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Live off-campus software internship openings for the 2027 batch — auto-fetched with direct apply links." />
-  <title>Leads — 2027 Software Internships</title>
+  <meta name="description" content="Official software internship and placement leads with direct apply links for the 2027 batch." />
+  <title>Leads — Internships & Placements</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/ui-polish.css?v=aligned-shell-2" />
 </head>
 <body>
+  <a class="skip-link" href="#workspace">Skip to openings</a>
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="bg-glow" aria-hidden="true"></div>
 
   <header class="site-header" id="top">
+    <button type="button" class="menu-icon" id="sidebarToggle" aria-label="Open navigation" aria-controls="workspaceSidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></button>
     <a class="brand" href="#top">
       <span class="brand-mark">L</span>
       <span class="brand-name">Leads</span>
     </a>
-    <nav class="nav">
-      <a href="#openings">Openings</a>
-      <a href="#portals">Career portals</a>
-      <button type="button" class="btn-refresh" id="refreshBtn" aria-label="Refresh latest internship openings from all job portals">
-        <span class="refresh-icon" aria-hidden="true"></span>
-        Refresh latest
+    <nav class="nav" aria-label="Primary">
+      <a href="#workspace">Openings</a>
+      <a href="#sheet">Spreadsheet</a>
+      <a href="#portals">Portals</a>
+      <button type="button" class="btn-refresh" id="refreshBtn" aria-label="Refresh latest openings">
+        <svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/>
+        </svg>
+        <span class="btn-label">Refresh</span>
       </button>
     </nav>
   </header>
 
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+  <aside class="app-sidebar" id="workspaceSidebar" role="dialog" aria-modal="true" aria-label="Workspace navigation" hidden>
+    <div class="sidebar-drawer-header"><span class="brand"><span class="brand-mark">L</span><span class="brand-name">Leads</span></span><button type="button" class="menu-icon" id="sidebarClose" aria-label="Close navigation">✕</button></div>
+    <p class="sidebar-caption">YOUR WORKSPACE</p>
+    <nav aria-label="Sections">
+      <button type="button" data-section="cards" aria-current="page"><span aria-hidden="true">▦</span> Opportunities</button>
+      <button type="button" data-section="sheet"><span aria-hidden="true">▤</span> Application tracker</button>
+      <button type="button" data-section="profile"><span aria-hidden="true">♙</span> Saved profile</button>
+      <button type="button" data-section="portals"><span aria-hidden="true">◎</span> Career portals</button>
+      <button type="button" data-section="sources"><span aria-hidden="true">⌘</span> Sources</button>
+    </nav>
+  </aside>
   <main>
-    <section class="hero">
-      <p class="hero-brand">Leads</p>
-      <h1 class="hero-title">2027 software internships, fetched live.</h1>
-      <p class="hero-sub">
-        Off-campus software roles for the 2027 batch — pulled automatically from public job boards, with direct apply URLs.
-      </p>
+    <section class="hero hero-actions-only" aria-label="Opportunity actions">
       <div class="hero-cta">
-        <button type="button" class="btn-primary btn-refresh-alt" id="heroRefreshBtn">
-          Refresh latest openings
-        </button>
-        <a class="btn-ghost" href="#openings">Browse openings</a>
+        <a class="btn-primary" href="#workspace">Go to openings</a>
+        <button type="button" class="btn-ghost btn-refresh-alt" id="heroRefreshBtn">Refresh latest</button>
       </div>
-      <p class="hero-meta" id="lastUpdated">Checking sources…</p>
+      <p id="lastUpdated" class="sr-only" role="status">Checking sources…</p>
     </section>
 
-    <section class="filters" id="openings" aria-label="Search and filters">
+    <div class="opportunity-tabs" role="tablist" aria-label="Opportunity type">
+      <button type="button" id="internshipsTab" role="tab" aria-selected="true" aria-controls="workspace" tabindex="0" data-opportunity-tab="internship">Internships</button>
+      <button type="button" id="placementsTab" role="tab" aria-selected="false" aria-controls="workspace" tabindex="-1" data-opportunity-tab="placement">Placements</button>
+    </div>
+
+    <details class="application-profile" id="applicationProfile">
+      <summary>Your application profile <span>Saved on this device</span></summary>
+      <p>Enter your details once. They save automatically in this browser on localhost. Select the fields you need, then copy individual values or the selected details into an application.</p>
+      <p>Apply opens a separate tab. External forms cannot be read or filled automatically by this page. Saved details are local and unencrypted; avoid passwords, identity documents and other sensitive information.</p>
+      <form id="applicationProfileForm" class="profile-grid"></form>
+      <div class="profile-actions"><button type="button" class="btn-primary" id="copyProfileFields">Copy selected fields</button><button type="button" class="btn-ghost" id="clearProfile">Clear saved details</button></div>
+      <p id="profileSaveStatus" role="status" aria-live="polite">Details stay in this browser until you clear them.</p>
+      <textarea id="profileCopyText" aria-label="Selected details to copy manually" rows="6" readonly hidden></textarea>
+    </details>
+    <section class="filters" id="openings" tabindex="0" aria-label="Search and filters — scroll for more options">
       <div class="filters-toolbar">
-        <p class="filters-heading">Internship openings</p>
-        <button type="button" class="btn-refresh btn-refresh-compact" id="listRefreshBtn" aria-label="Refresh latest internship openings">
-          <span class="refresh-icon" aria-hidden="true"></span>
-          Refresh latest
+        <div>
+          <p class="eyebrow">Filters</p>
+          <p class="filters-heading" id="filtersHeading">Internship openings</p>
+        </div>
+        <button type="button" class="btn-refresh btn-refresh-compact" id="listRefreshBtn" aria-label="Refresh latest openings">
+          <svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/>
+          </svg>
+          <span class="btn-label">Refresh</span>
         </button>
       </div>
+
       <div class="filters-row">
         <label class="search-wrap">
-          <span class="sr-only">Search roles or companies</span>
-          <input type="search" id="searchInput" placeholder="Search role, company, skill…" autocomplete="off" />
+          <span class="filter-label">Search</span>
+          <input type="search" id="searchInput" placeholder="Role, company, or skill" autocomplete="off" />
         </label>
         <div class="filter-group">
-          <label>
-            <span class="sr-only">Location filter</span>
+          <select id="opportunityFilter" hidden aria-hidden="true" tabindex="-1">
+            <option value="internship" selected>Internships</option>
+            <option value="placement">Placements</option>
+          </select>
+          <label class="filter-select">
+            <span class="filter-label">Location</span>
             <select id="locationFilter">
-              <option value="focus" selected>India · Japan · Europe · USA</option>
-              <option value="india">India only</option>
-              <option value="japan">Japan</option>
-              <option value="europe">Europe</option>
-              <option value="usa">USA</option>
-              <option value="remote">Remote</option>
+              <option value="focus" selected>India · Japan · Europe · USA · Remote</option>
+              <option value="india">India (+ remote India)</option>
+              <option value="japan">Japan (+ remote)</option>
+              <option value="europe">Europe (+ remote)</option>
+              <option value="usa">USA (+ remote)</option>
+              <option value="remote">Remote / hybrid only</option>
               <option value="all">All locations</option>
             </select>
           </label>
-          <label>
-            <span class="sr-only">Sort</span>
+          <label class="filter-select">
+            <span class="filter-label">Sort</span>
             <select id="sortFilter">
-              <option value="newest">Newest first</option>
+              <option value="newest">Newest</option>
               <option value="company">Company A–Z</option>
               <option value="title">Role A–Z</option>
             </select>
           </label>
         </div>
-      </div>
-      <fieldset class="role-filters">
-        <legend>Roles</legend>
-        <div class="role-checks" id="roleFilters" role="group" aria-label="Filter by role">
-          <label class="role-check"><input type="checkbox" name="role" value="sde" checked /> SDE</label>
-          <label class="role-check"><input type="checkbox" name="role" value="swe" checked /> SWE</label>
-          <label class="role-check"><input type="checkbox" name="role" value="devops" checked /> DevOps</label>
-          <label class="role-check"><input type="checkbox" name="role" value="frontend" /> Frontend</label>
-          <label class="role-check"><input type="checkbox" name="role" value="backend" /> Backend</label>
-          <label class="role-check"><input type="checkbox" name="role" value="fullstack" /> Full Stack</label>
-          <label class="role-check"><input type="checkbox" name="role" value="mobile" /> Mobile</label>
-          <label class="role-check"><input type="checkbox" name="role" value="data" /> Data</label>
-          <label class="role-check"><input type="checkbox" name="role" value="ml" /> ML / AI</label>
-          <label class="role-check"><input type="checkbox" name="role" value="qa" /> QA</label>
-          <label class="role-check"><input type="checkbox" name="role" value="security" /> Security</label>
-          <label class="role-check"><input type="checkbox" name="role" value="other" /> Other</label>
+      <details class="roles-dropdown" id="rolesDropdown">
+        <summary>
+          Roles
+          <span id="rolesSummary">All roles selected</span>
+        </summary>
+        <div class="roles-dropdown-panel">
+          <label class="role-check roles-select-all">
+            <input type="checkbox" id="selectAllRoles" checked />
+            Select all roles
+          </label>
+          <div class="role-checks" id="roleFilters" role="group" aria-label="Filter by role">
+            <label class="role-check"><input type="checkbox" name="role" value="sde" checked /> SDE</label>
+            <label class="role-check"><input type="checkbox" name="role" value="swe" checked /> SWE</label>
+            <label class="role-check"><input type="checkbox" name="role" value="devops" checked /> DevOps</label>
+            <label class="role-check"><input type="checkbox" name="role" value="frontend" checked /> Frontend</label>
+            <label class="role-check"><input type="checkbox" name="role" value="backend" checked /> Backend</label>
+            <label class="role-check"><input type="checkbox" name="role" value="fullstack" checked /> Full Stack</label>
+            <label class="role-check"><input type="checkbox" name="role" value="mobile" checked /> Mobile</label>
+            <label class="role-check"><input type="checkbox" name="role" value="data" checked /> Data</label>
+            <label class="role-check"><input type="checkbox" name="role" value="ml" checked /> ML / AI</label>
+            <label class="role-check"><input type="checkbox" name="role" value="qa" checked /> QA</label>
+            <label class="role-check"><input type="checkbox" name="role" value="security" checked /> Security</label>
+            <label class="role-check"><input type="checkbox" name="role" value="other" checked /> Other</label>
+          </div>
         </div>
-      </fieldset>
-      <label class="role-check hide-applied-check">
-        <input type="checkbox" id="hideAppliedFilter" />
-        Hide already applied
-      </label>
-      <div class="stats" id="statsBar">
-        <span id="resultCount">0 openings</span>
-        <span class="dot" aria-hidden="true"></span>
-        <span id="sourceCount">0 sources</span>
+      </details>
+      </div>
+
+
+
+      <div class="filters-footer">
+        <label class="role-check hide-applied-check">
+          <input type="checkbox" id="hideAppliedFilter" />
+          Hide already applied
+        </label>
+        <div class="stats" id="statsBar">
+          <span id="resultCount">0 openings</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span id="sourceCount">0 sources</span>
+        </div>
+      </div>
+
+      <div class="workspace-tabs" role="tablist" aria-label="Workspace view">
+        <button type="button" class="workspace-tab is-active" id="viewCardsBtn" role="tab" aria-selected="true" aria-controls="listingsCards" tabindex="0" data-workspace-tab="cards">List</button>
+        <button type="button" class="workspace-tab" id="viewSheetBtn" role="tab" aria-selected="false" aria-controls="sheet" tabindex="-1" data-workspace-tab="sheet">Spreadsheet</button>
+        <button type="button" class="workspace-tab" id="viewPortalsBtn" role="tab" aria-selected="false" aria-controls="portals" tabindex="-1" data-workspace-tab="portals">Portals</button>
       </div>
     </section>
 
-    <section class="listings" aria-live="polite">
-      <div class="loading" id="loadingState">
-        <div class="spinner" aria-hidden="true"></div>
-        <p>Refreshing latest internship roles from all important job portals…</p>
-      </div>
-      <div class="error" id="errorState" hidden>
-        <p id="errorMessage">Could not load listings.</p>
-        <button type="button" class="btn-primary" id="retryBtn">Try again</button>
-      </div>
-      <ul class="job-list" id="jobList"></ul>
-      <p class="empty" id="emptyState" hidden>No internships match your filters. Try other roles, clearing search, or switching location.</p>
-    </section>
+    <div class="workspace" id="workspace">
 
-    <section class="portals" id="portals">
-      <h2>Internship portals by region</h2>
-      <p class="section-sub">India, Japan, Europe, USA/Canada, Latin America, and global boards — including Internshala, Unstop, Handshake, SimplifyJobs, EURES, Wantedly, and company career pages. Openings above are auto-fetched with direct Apply links.</p>
-      <div class="portal-regions" id="portalList"></div>
+      <section class="listings workspace-panel" id="listingsCards" role="tabpanel" aria-labelledby="viewCardsBtn" aria-live="polite">
+        <div class="loading" id="loadingState">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Loading roles from tracker feeds and company boards…</p>
+        </div>
+        <div class="error" id="errorState" hidden>
+          <p id="errorMessage">Could not load listings.</p>
+          <button type="button" class="btn-primary" id="retryBtn">Try again</button>
+        </div>
+        <ul class="job-list" id="jobList"></ul>
+        <p class="empty" id="emptyState" hidden>No opportunities match your filters. Try other roles, clearing search, or switching location.</p>
+      </section>
+
+      <section class="sheet-section workspace-panel is-hidden" id="sheet" role="tabpanel" aria-labelledby="viewSheetBtn" hidden>
+        <div class="sheet-header">
+          <div>
+            <p class="eyebrow">Application tracker</p>
+            <h2>Opportunity spreadsheet</h2>
+            <p class="section-sub">Status, exact apply links, and notes are saved in this browser. Confirm availability on the employer site before applying.</p>
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn-ghost" id="exportSheetBtn">Export CSV</button>
+          </div>
+        </div>
+
+        <details class="site-info-panel" id="siteInfoPanel">
+          <summary>Site information &amp; tracking notes</summary>
+          <p class="site-info-hint">Eligibility, batch year, target roles, and other requirements for your search.</p>
+          <textarea
+            id="siteInfoInput"
+            class="site-info-input"
+            rows="3"
+            placeholder="e.g. Batch 2027 · Prefer SDE/SWE/DevOps · India / Japan / remote OK · Visa notes…"
+          ></textarea>
+          <p class="site-info-saved" id="siteInfoSaved" hidden>Saved</p>
+        </details>
+
+        <div class="sheet-wrap">
+          <table class="sheet-table" id="sheetTable">
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Role</th>
+                <th scope="col">Company</th>
+                <th scope="col">Location</th>
+                <th scope="col">Software roles</th>
+                <th scope="col">Requirements / notes</th>
+                <th scope="col">Source</th>
+                <th scope="col">Exact apply link</th>
+              </tr>
+            </thead>
+            <tbody id="sheetBody"></tbody>
+          </table>
+          <p class="empty sheet-empty" id="sheetEmpty" hidden>No opportunities match your filters.</p>
+        </div>
+        <p class="sheet-count" id="sheetCount">0 rows</p>
+      </section>
+
+      <section class="portals workspace-panel is-hidden" id="portals" role="tabpanel" aria-labelledby="viewPortalsBtn" hidden>
+        <p class="eyebrow">Bookmarks</p>
+        <h2>Career portals by region</h2>
+        <p class="section-sub">Official boards by region. List and spreadsheet views already use direct apply links when available.</p>
+        <div class="portal-regions" id="portalList"></div>
+      </section>
+    </div>
+    <section id="sourcesSection" class="sources-section workspace-panel is-hidden" hidden aria-labelledby="sourcesTitle">
+      <p class="eyebrow">SOURCE DIRECTORY</p>
+      <h1 id="sourcesTitle">Where opportunities come from</h1>
+      <p class="section-sub">All configured GitHub repositories, job boards, company boards and regional career portals. Automatic feeds load into Opportunities; browse-only portals open their own site.</p>
+      <div class="sources-tools"><label>Search sources<input type="search" id="sourceSearch" placeholder="GitHub, Japan, company name…" /></label><label>Category<select id="sourceCategory"><option value="all">All sources</option><option>GitHub feeds</option><option>Job boards</option><option>Company boards</option><option>Career portals</option></select></label><span id="sourcesCount" role="status"></span></div>
+      <div id="sourcesList" class="sources-grid"></div>
+      <p id="sourcesEmpty" hidden>No sources match your search.</p>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p><strong>Leads</strong> aggregates live job postings with direct apply links for students. Always verify dates and eligibility on the employer site before applying.</p>
-    <p class="footer-note">Sources: SimplifyJobs 2027 · ApplyGuy 2027 · LinkedIn · The Muse · Greenhouse · Ashby · Lever · Remote OK · Jobicy · Remotive · Arbeitnow</p>
+    <div class="footer-identity"><a class="footer-brand" href="#top">Leads<span aria-hidden="true">.</span></a><span>Internships &amp; placements, in one place.</span></div>
+    <nav class="footer-links" aria-label="Footer"><a href="#workspace">Opportunities</a><a href="#sources" id="footerSourcesLink">Sources</a><a href="#top">Back to top ↑</a></nav>
+    <p class="footer-bottom">© 2026 Leads <span>Check eligibility and availability on the employer’s site.</span></p>
   </footer>
 
   <script src="js/app.js" type="module"></script>
+  <script src="js/application-profile.js" type="module"></script>
 </body>
 </html>

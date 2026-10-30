@@ -1,3 +1,60 @@
+const SOURCE_BOARDS = {
+greenhouse: [
+    { token: "stripe", name: "Stripe" },
+    { token: "cloudflare", name: "Cloudflare" },
+    { token: "figma", name: "Figma" },
+    { token: "datadog", name: "Datadog" },
+    { token: "lyft", name: "Lyft" },
+    { token: "pinterest", name: "Pinterest" },
+    { token: "scaleai", name: "Scale AI" },
+    { token: "coinbase", name: "Coinbase" },
+    { token: "affirm", name: "Affirm" },
+    { token: "mongodb", name: "MongoDB" },
+    { token: "roblox", name: "Roblox" },
+    { token: "duolingo", name: "Duolingo" },
+    { token: "samsara", name: "Samsara" },
+    { token: "dropbox", name: "Dropbox" },
+    { token: "twilio", name: "Twilio" },
+    { token: "asana", name: "Asana" },
+    { token: "discord", name: "Discord" },
+    { token: "plaid", name: "Plaid" },
+    { token: "brex", name: "Brex" },
+    { token: "ramp", name: "Ramp" },
+    { token: "airbnb", name: "Airbnb" },
+    { token: "doordash", name: "DoorDash" },
+    { token: "robinhood", name: "Robinhood" },
+    { token: "reddit", name: "Reddit" },
+    { token: "block", name: "Block" },
+    { token: "hubspot", name: "HubSpot" },
+    { token: "elastic", name: "Elastic" },
+    { token: "gitlab", name: "GitLab" },
+    { token: "okta", name: "Okta" },
+    { token: "nvidia", name: "NVIDIA" },
+    { token: "hackerrank", name: "HackerRank" },
+    { token: "notion", name: "Notion" },
+    { token: "spotify", name: "Spotify" },
+    { token: "airtable", name: "Airtable" },
+  ],
+ashby: [
+    { token: "notion", name: "Notion" },
+    { token: "openai", name: "OpenAI" },
+    { token: "ramp", name: "Ramp" },
+    { token: "cursor", name: "Cursor" },
+    { token: "perplexity", name: "Perplexity" },
+    { token: "linear", name: "Linear" },
+    { token: "supabase", name: "Supabase" },
+    { token: "replit", name: "Replit" },
+  ],
+lever: [
+    { token: "spotify", name: "Spotify" },
+    { token: "palantir", name: "Palantir" },
+    { token: "twitch", name: "Twitch" },
+    { token: "nike", name: "Nike" },
+    { token: "canva", name: "Canva" },
+    { token: "grammarly", name: "Grammarly" },
+  ]
+};
+
 /**
  * Leads — live internship aggregator for 2027 batch software roles.
  * Fetches public APIs in the browser (static site, no backend).
@@ -23,7 +80,15 @@ const USA_RE =
   /\b(united states|\busa\b|\bu\.?s\.?\b|u\.s\.a\.?|america|california|new york|nyc|san francisco|bay area|seattle|austin|boston|chicago|los angeles|san jose|palo alto|mountain view|sunnyvale|redmond|bellevue|denver|atlanta|dallas|miami|houston|phoenix|portland|pittsburgh|philadelphia|washington,? ?d\.?c\.?|menlo park|cupertino|irvine|hawthorne|remote.?us)\b|,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/i;
 
 const WORLDWIDE_RE = /\b(worldwide|anywhere|global)\b/i;
-const REMOTE_RE = /\bremote\b/i;
+const REMOTE_RE = /\b(remote|work from home|wfh|home[- ]based|distributed)\b/i;
+
+function isFullyRemoteOpportunity(job) {
+  const text = `${job.location || ""} ${job.title || ""} ${(job.tags || []).join(" ")}`;
+  if (/\b(hybrid|partially remote|partial remote)\b/i.test(text)) return false;
+  return Boolean(job.remote) || REMOTE_RE.test(text) || WORLDWIDE_RE.test(job.location || "");
+}
+const REMOTE_FRIENDLY_RE =
+  /\b(remote|work\s*from\s*home|\bwfh\b|hybrid|distributed|work\s*from\s*anywhere|fully\s*remote|remote[- ]first)\b/i;
 
 function geoRegionsIn(locationText) {
   const loc = locationText || "";
@@ -35,9 +100,27 @@ function geoRegionsIn(locationText) {
   return regions;
 }
 
+/** True when the posting is remote / hybrid / WFH / worldwide. */
+function isRemoteOpportunity(jobOrParts) {
+  if (!jobOrParts) return false;
+  if (typeof jobOrParts === "object" && jobOrParts.remote) return true;
+  const loc = jobOrParts.location || jobOrParts.loc || "";
+  const title = jobOrParts.title || "";
+  const tags = Array.isArray(jobOrParts.tags)
+    ? jobOrParts.tags.join(" ")
+    : jobOrParts.tags || "";
+  const blob = `${loc} ${title} ${tags}`;
+  return (
+    REMOTE_FRIENDLY_RE.test(blob) ||
+    WORLDWIDE_RE.test(blob) ||
+    /\b(remoteok|remotive|jobicy)\b/i.test(jobOrParts.source || "")
+  );
+}
+
 function regionOf(job) {
   const loc = job.location || "";
   const geos = geoRegionsIn(loc);
+  const remote = isRemoteOpportunity(job);
 
   // "India · USA · Europe" style labels are multi-region, not India-only
   if (geos.size > 1 || (geos.size >= 1 && WORLDWIDE_RE.test(loc))) {
@@ -47,7 +130,7 @@ function regionOf(job) {
   if (geos.has("japan")) return "japan";
   if (geos.has("usa")) return "usa";
   if (geos.has("europe")) return "europe";
-  if (job.remote || REMOTE_RE.test(loc) || WORLDWIDE_RE.test(loc)) return "remote";
+  if (remote) return "remote";
   return "other";
 }
 
@@ -73,12 +156,13 @@ function isIndiaOnly(job) {
 
 function matchesFocusRegions(job) {
   const region = regionOf(job);
+  // Always keep remote / hybrid / worldwide openings in the default focus view
+  if (isRemoteOpportunity(job) || region === "remote") return true;
   return (
     region === "india" ||
     region === "japan" ||
     region === "europe" ||
     region === "usa" ||
-    region === "remote" ||
     region === "multi"
   );
 }
@@ -132,8 +216,10 @@ const PORTALS = [
   { region: "India", name: "PM Internship Scheme", desc: "Government scheme with corporate placements", location: "India", url: "https://pminternship.mca.gov.in/" },
   { region: "India", name: "National Career Service", desc: "Government job portal", location: "India", url: "https://www.ncs.gov.in/" },
   // Japan
+  { region: "Japan", name: "METI Japan Internship Program", desc: "Official internship programme for international talent — check current intake and eligibility", location: "Japan", url: "https://www.internshipprogram.go.jp/english/" },
+  { region: "Japan", name: "Study in Japan — Internships", desc: "Official student internship guidance and employment support links", location: "Japan", url: "https://www.studyinjapan.go.jp/en/work-in-japan/internships/" },
   { region: "Japan", name: "Wantedly", desc: "Startup-friendly, culture-based matching", location: "Japan", url: "https://www.wantedly.com/projects?type=internship&occupation_types%5B%5D=jp_engineer" },
-  { region: "Japan", name: "Mynavi", desc: "Main shukatsu / student internship platform", location: "Japan", url: "https://job.mynavi.jp/26/pc/" },
+  { region: "Japan", name: "Mynavi", desc: "Main shukatsu / student internship platform", location: "Japan", url: "https://job.mynavi.jp/" },
   { region: "Japan", name: "Rikunabi", desc: "Student internships & shukatsu", location: "Japan", url: "https://job.rikunabi.com/" },
   { region: "Japan", name: "OfferBox", desc: "Companies approach students directly", location: "Japan", url: "https://offerbox.jp/" },
   { region: "Japan", name: "ONE CAREER", desc: "Student career & internship listings", location: "Japan", url: "https://www.onecareer.jp/" },
@@ -193,7 +279,19 @@ const PORTALS = [
   { region: "Latin America", name: "CIEE", desc: "Brazil student internship program", location: "Brazil", url: "https://portal.ciee.org.br/" },
 ];
 
+const STATUS_STORAGE_KEY = "leads-application-status-v1";
+const SAVED_JOBS_STORAGE_KEY = "leads-tracked-jobs-v1";
+const APPLICATION_STATUSES = ["Not applied", "Applied", "Interview", "Offer", "Rejected"];
+function loadTrackingMap(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch { return {}; }
+}
 const APPLIED_STORAGE_KEY = "leads-applied-jobs-v1";
+const REQUIREMENTS_STORAGE_KEY = "leads-job-requirements-v1";
+const SITE_INFO_STORAGE_KEY = "leads-site-info-v1";
+const VIEW_STORAGE_KEY = "leads-view-mode-v1";
 
 function loadAppliedIds() {
   try {
@@ -205,12 +303,41 @@ function loadAppliedIds() {
   }
 }
 
+function loadRequirementsMap() {
+  try {
+    const raw = localStorage.getItem(REQUIREMENTS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function loadSiteInfo() {
+  try {
+    return localStorage.getItem(SITE_INFO_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function loadViewMode() {
+  const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+  return ["sheet", "portals", "profile", "sources"].includes(saved) ? saved : "cards";
+}
+
 const state = {
   jobs: [],
   sourcesOk: 0,
   sourcesTried: 0,
   lastFetch: null,
   appliedIds: loadAppliedIds(),
+  applicationStatuses: loadTrackingMap(STATUS_STORAGE_KEY),
+  savedJobs: loadTrackingMap(SAVED_JOBS_STORAGE_KEY),
+  requirements: loadRequirementsMap(),
+  viewMode: loadViewMode(),
 };
 
 function saveAppliedIds() {
@@ -220,18 +347,53 @@ function saveAppliedIds() {
   );
 }
 
-function isApplied(jobId) {
-  return state.appliedIds.has(jobId);
+function saveRequirementsMap() {
+  localStorage.setItem(
+    REQUIREMENTS_STORAGE_KEY,
+    JSON.stringify(state.requirements)
+  );
 }
 
-function setApplied(jobId, applied) {
-  if (applied) state.appliedIds.add(jobId);
-  else state.appliedIds.delete(jobId);
+function getApplicationStatus(jobId) {
+  const saved = state.applicationStatuses[jobId];
+  return APPLICATION_STATUSES.includes(saved) ? saved : state.appliedIds.has(jobId) ? "Applied" : "Not applied";
+}
+function isApplied(jobId) {
+  return getApplicationStatus(jobId) !== "Not applied";
+}
+function setApplicationStatus(jobId, status) {
+  if (!APPLICATION_STATUSES.includes(status)) return;
+  state.applicationStatuses[jobId] = status;
+  if (status === "Not applied") {
+    state.appliedIds.delete(jobId);
+    delete state.savedJobs[jobId];
+  } else {
+    state.appliedIds.add(jobId);
+    const job = state.jobs.find(item => item.id === jobId);
+    if (job) state.savedJobs[jobId] = job;
+  }
   saveAppliedIds();
+  localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(state.applicationStatuses));
+  localStorage.setItem(SAVED_JOBS_STORAGE_KEY, JSON.stringify(state.savedJobs));
+}
+function setApplied(jobId, applied) {
+  setApplicationStatus(jobId, applied ? "Applied" : "Not applied");
+}
+
+function getRequirement(jobId) {
+  return state.requirements[jobId] || "";
+}
+
+function setRequirement(jobId, text) {
+  const value = String(text || "").trim();
+  if (value) state.requirements[jobId] = value;
+  else delete state.requirements[jobId];
+  saveRequirementsMap();
 }
 
 const els = {
   jobList: document.getElementById("jobList"),
+  listingsCards: document.getElementById("listingsCards"),
   loading: document.getElementById("loadingState"),
   error: document.getElementById("errorState"),
   errorMessage: document.getElementById("errorMessage"),
@@ -248,6 +410,15 @@ const els = {
   listRefreshBtn: document.getElementById("listRefreshBtn"),
   retryBtn: document.getElementById("retryBtn"),
   portalList: document.getElementById("portalList"),
+  sheetSection: document.getElementById("sheet"),
+  sheetBody: document.getElementById("sheetBody"),
+  sheetEmpty: document.getElementById("sheetEmpty"),
+  sheetCount: document.getElementById("sheetCount"),
+  siteInfoInput: document.getElementById("siteInfoInput"),
+  siteInfoSaved: document.getElementById("siteInfoSaved"),
+  exportSheetBtn: document.getElementById("exportSheetBtn"),
+  viewCardsBtn: document.getElementById("viewCardsBtn"),
+  viewSheetBtn: document.getElementById("viewSheetBtn"),
 };
 
 function refreshButtons() {
@@ -260,6 +431,12 @@ function isInternship(text) {
 
 function isSoftware(text) {
   return SOFTWARE_RE.test(text);
+}
+
+/** Require IT evidence in the role itself, rather than a board's broad category. */
+function isITOpportunity(job) {
+  const title = job.title || "";
+  return /\b(software|sde|swe|developer|programmer|frontend|front[- ]?end|backend|back[- ]?end|full[- ]?stack|fullstack|devops|sre|site reliability|cloud|cybersecurity|cyber security|infosec|appsec|information security|network engineer|network administrator|network support|systems? administrator|systems? analyst|IT support|IT intern|IT trainee|IT apprentice|IT analyst|IT specialist|IT technician|information technology|technical support|help ?desk|desktop support|database|DBA|data engineer|data scien(?:ce|tist)|data analy(?:st|tics)|analytics engineer|machine learning|ML engineer|AI engineer|artificial intelligence|deep learning|LLM|SDET|test automation|automation test|QA engineer|quality assurance engineer|platform engineer|infrastructure engineer|security engineer|embedded|firmware|android|ios|mobile (?:engineer|development)|web (?:engineer|design|development)|UI engineer|UX engineer)\b/i.test(title);
 }
 
 function matchesRole(title, tags = [], description = "") {
@@ -355,17 +532,23 @@ function detectRoles(title, tags = []) {
 function normalizeJob(raw) {
   const title = raw.title.trim();
   const tags = (raw.tags || []).slice(0, 5);
+  const location = raw.location || "Not specified";
+  const remote = Boolean(raw.remote) ||
+    isRemoteOpportunity({ location, title, tags, source: raw.source });
   return {
     id: raw.id,
     title,
     company: raw.company.trim(),
-    location: raw.location || "Not specified",
+    location: remote && location === "Not specified" ? "Remote" : location,
     url: raw.url,
-    tags,
+    tags: remote && !tags.some((t) => /remote|hybrid/i.test(t))
+      ? [...tags, "Remote"].slice(0, 5)
+      : tags,
     roles: detectRoles(title, tags),
     source: raw.source,
+    opportunityType: raw.opportunityType || (/intern|co[- ]?op|working student/i.test(title) ? "internship" : "placement"),
     publishedAt: raw.publishedAt ? new Date(raw.publishedAt) : null,
-    remote: Boolean(raw.remote),
+    remote,
   };
 }
 
@@ -385,7 +568,7 @@ async function freshFetch(url, options = {}) {
   } catch {
     /* keep original */
   }
-  return fetch(requestUrl, { ...options, cache: "no-store" });
+  return fetch(requestUrl, { ...options, signal: options.signal || AbortSignal.timeout(15000), cache: "no-store" });
 }
 
 function dedupeJobs(jobs) {
@@ -474,42 +657,7 @@ async function fetchArbeitnow() {
 
 /** Public Greenhouse boards that often list university/intern SWE roles */
 async function fetchGreenhouseBoards() {
-  const boards = [
-    { token: "stripe", name: "Stripe" },
-    { token: "cloudflare", name: "Cloudflare" },
-    { token: "figma", name: "Figma" },
-    { token: "datadog", name: "Datadog" },
-    { token: "lyft", name: "Lyft" },
-    { token: "pinterest", name: "Pinterest" },
-    { token: "scaleai", name: "Scale AI" },
-    { token: "coinbase", name: "Coinbase" },
-    { token: "affirm", name: "Affirm" },
-    { token: "mongodb", name: "MongoDB" },
-    { token: "roblox", name: "Roblox" },
-    { token: "duolingo", name: "Duolingo" },
-    { token: "samsara", name: "Samsara" },
-    { token: "dropbox", name: "Dropbox" },
-    { token: "twilio", name: "Twilio" },
-    { token: "asana", name: "Asana" },
-    { token: "discord", name: "Discord" },
-    { token: "plaid", name: "Plaid" },
-    { token: "brex", name: "Brex" },
-    { token: "ramp", name: "Ramp" },
-    { token: "airbnb", name: "Airbnb" },
-    { token: "doordash", name: "DoorDash" },
-    { token: "robinhood", name: "Robinhood" },
-    { token: "reddit", name: "Reddit" },
-    { token: "block", name: "Block" },
-    { token: "hubspot", name: "HubSpot" },
-    { token: "elastic", name: "Elastic" },
-    { token: "gitlab", name: "GitLab" },
-    { token: "okta", name: "Okta" },
-    { token: "nvidia", name: "NVIDIA" },
-    { token: "hackerrank", name: "HackerRank" },
-    { token: "notion", name: "Notion" },
-    { token: "spotify", name: "Spotify" },
-    { token: "airtable", name: "Airtable" },
-  ];
+  const boards = SOURCE_BOARDS.greenhouse;
 
   const results = await Promise.allSettled(
     boards.map(async ({ token, name }) => {
@@ -683,16 +831,7 @@ async function fetchRemoteOK() {
 
 /** Ashby public job boards */
 async function fetchAshbyBoards() {
-  const boards = [
-    { token: "notion", name: "Notion" },
-    { token: "openai", name: "OpenAI" },
-    { token: "ramp", name: "Ramp" },
-    { token: "cursor", name: "Cursor" },
-    { token: "perplexity", name: "Perplexity" },
-    { token: "linear", name: "Linear" },
-    { token: "supabase", name: "Supabase" },
-    { token: "replit", name: "Replit" },
-  ];
+  const boards = SOURCE_BOARDS.ashby;
 
   const results = await Promise.allSettled(
     boards.map(async ({ token, name }) => {
@@ -739,14 +878,7 @@ async function fetchAshbyBoards() {
 
 /** Lever public postings boards */
 async function fetchLeverBoards() {
-  const boards = [
-    { token: "spotify", name: "Spotify" },
-    { token: "palantir", name: "Palantir" },
-    { token: "twitch", name: "Twitch" },
-    { token: "nike", name: "Nike" },
-    { token: "canva", name: "Canva" },
-    { token: "grammarly", name: "Grammarly" },
-  ];
+  const boards = SOURCE_BOARDS.lever;
 
   const results = await Promise.allSettled(
     boards.map(async ({ token, name }) => {
@@ -777,7 +909,7 @@ async function fetchLeverBoards() {
             publishedAt: j.createdAt
               ? new Date(j.createdAt).toISOString()
               : null,
-            remote: /remote|hybrid/i.test(
+            remote: /remote/i.test(
               `${j.workplaceType || ""} ${j.categories?.location || ""}`
             ),
           })
@@ -838,6 +970,73 @@ async function fetchJobicy() {
   return collected;
 }
 
+/** Curated GitHub trackers rank above generic job boards (Simplify / ApplyGuy flow). */
+const SOURCE_PRIORITY = {
+  "SimplifyJobs 2027": 0,
+  "Simplify New Grad": 1,
+  "ApplyGuy 2027": 2,
+  "Surya Tracker": 3,
+  "FresherFlow India": 4,
+  LinkedIn: 5,
+  Greenhouse: 6,
+  Ashby: 7,
+  Lever: 8,
+  "The Muse": 9,
+  "Remote OK": 10,
+  Jobicy: 11,
+  Remotive: 12,
+  Arbeitnow: 13,
+};
+
+const AUTO_REFRESH_MS = 15 * 60 * 1000;
+
+function unixSecondsToIso(seconds) {
+  if (!seconds && seconds !== 0) return null;
+  const n = Number(seconds);
+  if (!Number.isFinite(n)) return null;
+  // Simplify uses unix seconds; guard against ms accidentally
+  const ms = n > 1e12 ? n : n * 1000;
+  return new Date(ms).toISOString();
+}
+
+function isSoftwareCategory(category = "") {
+  return /software|swe|sde|engineering/i.test(category);
+}
+
+/**
+ * Shared mapper for Simplify-style listings.json rows
+ * (active flag, company_name, locations[], date_posted, exact url).
+ */
+function mapTrackerListing(j, { idPrefix, source, opportunityType, extraTags = [] }) {
+  const title = j.title || "";
+  const company = j.company_name || j.company || "";
+  const location = Array.isArray(j.locations)
+    ? j.locations.filter(Boolean).join(" · ")
+    : j.location || "See posting";
+  const url = j.url || j.listingUrl || j.apply_url;
+  if (!title || !company || !url || !/^https?:\/\//i.test(url)) return null;
+
+  const terms = [].concat(j.terms || [], j.season || [], extraTags).filter(Boolean);
+  const remote = isRemoteOpportunity({
+    location,
+    title,
+    tags: terms,
+    source,
+  });
+  return normalizeJob({
+    id: `${idPrefix}-${j.id || `${company}-${title}`.slice(0, 64)}`,
+    title,
+    company,
+    location: location || (remote ? "Remote" : "See posting"),
+    url,
+    tags: terms.slice(0, 5),
+    source,
+    opportunityType,
+    publishedAt: unixSecondsToIso(j.date_posted || j.date_updated) || j.posted || null,
+    remote,
+  });
+}
+
 /** ApplyGuy public JSON — verified US Summer 2027 SWE / related internships. */
 async function fetchApplyGuy() {
   const res = await freshFetch(
@@ -854,7 +1053,8 @@ async function fetchApplyGuy() {
         (isInternship(title) || /intern|co[- ]?op/i.test(title))
       );
     })
-    .slice(0, 400)
+    .sort((a, b) => String(b.posted || "").localeCompare(String(a.posted || "")))
+    .slice(0, 500)
     .map((j) =>
       normalizeJob({
         id: `applyguy-${j.id}`,
@@ -864,6 +1064,7 @@ async function fetchApplyGuy() {
         url: j.listingUrl || j.url,
         tags: ["2027", j.season, j.category].filter(Boolean),
         source: "ApplyGuy 2027",
+        opportunityType: "internship",
         publishedAt: j.posted || data.updatedAt || null,
         remote: /remote/i.test(j.location || ""),
       })
@@ -872,100 +1073,151 @@ async function fetchApplyGuy() {
   return jobs;
 }
 
-function stripHtmlText(html) {
-  return String(html || "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+/**
+ * SimplifyJobs machine-readable listings.json (same feed swelist / Pitt CSC use).
+ * Much more reliable than scraping the README HTML tables.
+ */
+async function fetchSimplifyJobs(kind = "internship") {
+  const placement = kind === "placement";
+  const repo = placement ? "New-Grad-Positions" : "Summer2027-Internships";
+  const res = await freshFetch(
+    `https://raw.githubusercontent.com/SimplifyJobs/${repo}/dev/.github/scripts/listings.json`
+  );
+  if (!res.ok) throw new Error(`SimplifyJobs ${repo} unavailable`);
+  const listings = await res.json();
+  if (!Array.isArray(listings)) throw new Error("SimplifyJobs feed malformed");
+
+  const mapped = listings
+    .filter((j) => j && j.active !== false && j.is_visible !== false)
+    .filter((j) => isSoftwareCategory(j.category || "") || isSoftware(j.title || ""))
+    .filter((j) => {
+      if (placement) return true;
+      const blob = `${j.title || ""} ${(j.terms || []).join(" ")}`;
+      return isInternship(blob) || /intern|co[- ]?op/i.test(blob);
+    })
+    .map((j) =>
+      mapTrackerListing(j, {
+        idPrefix: placement ? "simplify-ng" : "simplify",
+        source: placement ? "Simplify New Grad" : "SimplifyJobs 2027",
+        opportunityType: placement ? "placement" : "internship",
+        extraTags: [
+          placement ? "New Grad" : "Summer 2027",
+          "SimplifyJobs",
+          j.sponsorship && j.sponsorship !== "Other" ? j.sponsorship : null,
+        ],
+      })
+    )
+    .filter(Boolean)
+    .sort(
+      (a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0)
+    )
+    .slice(0, 800);
+
+  if (!mapped.length) throw new Error("SimplifyJobs returned no software roles");
+  return mapped;
 }
 
-/** SimplifyJobs Summer 2027 GitHub list — Software Engineering section. */
-async function fetchSimplifyJobs() {
+/**
+ * SuryaHarikrishnan/2027-internship-tracker — aggregated daily listings.json
+ * (Simplify + other community sources, deduped).
+ */
+async function fetchSuryaTracker() {
   const res = await freshFetch(
-    "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/README.md"
+    "https://raw.githubusercontent.com/SuryaHarikrishnan/2027-internship-tracker/master/data/listings.json"
   );
-  if (!res.ok) throw new Error("SimplifyJobs unavailable");
-  const md = await res.text();
+  if (!res.ok) throw new Error("Surya tracker unavailable");
+  const listings = await res.json();
+  if (!Array.isArray(listings)) throw new Error("Surya feed malformed");
 
-  const markers = [
-    "## 💻 Software Engineering Internship Roles",
-    "## Software Engineering Internship Roles",
-    "Software Engineering Internship Roles",
-  ];
-  let start = -1;
-  for (const m of markers) {
-    start = md.indexOf(m);
-    if (start !== -1) break;
-  }
-  if (start === -1) throw new Error("SimplifyJobs SWE section missing");
+  const mapped = listings
+    .filter((j) => j && j.active !== false && j.is_visible !== false)
+    .filter((j) => isSoftwareCategory(j.category || "") || isSoftware(j.title || ""))
+    .filter((j) => {
+      const blob = `${j.title || ""} ${(j.terms || []).join(" ")} ${j.season || ""}`;
+      return (
+        isInternship(blob) ||
+        /intern|co[- ]?op|new grad|graduate|emerging talent/i.test(blob)
+      );
+    })
+    .map((j) => {
+      const placement =
+        /new grad|graduate|emerging talent|university grad/i.test(j.title || "") &&
+        !isInternship(j.title || "");
+      return mapTrackerListing(j, {
+        idPrefix: "surya",
+        source: "Surya Tracker",
+        opportunityType: placement ? "placement" : "internship",
+        extraTags: ["Tracker", j.season, ...(j.terms || [])].filter(Boolean),
+      });
+    })
+    .filter(Boolean)
+    .sort(
+      (a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0)
+    )
+    .slice(0, 800);
 
-  let end = md.indexOf("\n## ", start + 20);
-  if (end === -1) end = Math.min(md.length, start + 500000);
-  const section = md.slice(start, end);
+  if (!mapped.length) throw new Error("Surya tracker returned no software roles");
+  return mapped;
+}
 
-  const rowRe =
-    /<tr>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/gi;
-  const collected = [];
-  let match;
-  while ((match = rowRe.exec(section)) !== null) {
-    const companyHtml = match[1];
-    const titleHtml = match[2];
-    const locationHtml = match[3];
-    const applyHtml = match[4];
+/** FresherFlow India jobs/internships — India placement + internship leads. */
+async function fetchFresherFlowIndia() {
+  const res = await freshFetch(
+    "https://raw.githubusercontent.com/FresherFlow/India-Jobs-Internships/main/data/jobs.json"
+  );
+  if (!res.ok) throw new Error("FresherFlow India unavailable");
+  const data = await res.json();
+  const jobs = data.jobs || [];
 
-    if (/Company|Role|Location|Application/i.test(stripHtmlText(companyHtml))) continue;
-    if (/🔒|closed/i.test(applyHtml) || /🔒/.test(companyHtml)) continue;
+  const mapped = jobs
+    .filter((j) => j && String(j.status || "").toUpperCase() !== "EXPIRED")
+    .filter((j) => {
+      const blob = `${j.title || ""} ${(j.tags || []).join(" ")} ${j.notesHighlights || ""}`;
+      return isSoftware(blob) || /sde|swe|developer|engineer|intern|fresher/i.test(blob);
+    })
+    .map((j) => {
+      const type = String(j.type || "").toUpperCase();
+      const isIntern =
+        type === "INTERNSHIP" || isInternship(j.title || "") || /intern/i.test(j.title || "");
+      const location = Array.isArray(j.locations)
+        ? j.locations.join(" · ")
+        : j.location || "India";
+      return normalizeJob({
+        id: `fresherflow-${j.id}`,
+        title: j.title,
+        company: j.company,
+        location: /india/i.test(location) ? location : `${location} · India`,
+        url: j.applyLink || j.url,
+        tags: ["India", ...(j.tags || []), j.workMode].filter(Boolean).slice(0, 5),
+        source: "FresherFlow India",
+        opportunityType: isIntern ? "internship" : "placement",
+        publishedAt: j.dateAdded || j.addedAt || null,
+        remote: /remote/i.test(`${j.workMode || ""} ${location}`),
+      });
+    })
+    .filter((j) => j.url);
 
-    const company = stripHtmlText(companyHtml).replace(/^↳\s*/, "").replace(/^🔥\s*/, "");
-    const title = stripHtmlText(titleHtml);
-    const location = stripHtmlText(locationHtml);
-    if (!company || !title) continue;
-    if (!isInternship(title) && !isSoftware(title)) continue;
+  if (!mapped.length) throw new Error("FresherFlow returned no open software roles");
+  return mapped;
+}
 
-    const hrefs = [...applyHtml.matchAll(/href="([^"]+)"/gi)].map((m) => m[1]);
-    const applyUrl =
-      hrefs.find(
-        (h) =>
-          h.startsWith("http") &&
-          !/simplify\.jobs\/p\//i.test(h) &&
-          !/imgur\.com/i.test(h)
-      ) || hrefs.find((h) => h.startsWith("http"));
-
-    if (!applyUrl) continue;
-
-    collected.push(
-      normalizeJob({
-        id: `simplify-${company.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .slice(0, 48)}`,
-        title,
-        company,
-        location: location || "See posting",
-        url: applyUrl,
-        tags: ["Summer 2027", "SimplifyJobs"],
-        source: "SimplifyJobs 2027",
-        publishedAt: new Date().toISOString(),
-        remote: /remote/i.test(location),
-      })
-    );
-
-    if (collected.length >= 300) break;
-  }
-
-  if (!collected.length) throw new Error("SimplifyJobs parse empty");
-  return collected;
+function compareJobsByTrackerPriority(a, b) {
+  const srcDiff =
+    (SOURCE_PRIORITY[a.source] ?? 50) - (SOURCE_PRIORITY[b.source] ?? 50);
+  if (srcDiff !== 0) return srcDiff;
+  return (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0);
 }
 
 async function loadAllJobs() {
   const buckets = [];
   const sources = [
-    { name: "SimplifyJobs 2027", fn: fetchSimplifyJobs },
+    // Community internship / placement trackers (primary live leads)
+    { name: "SimplifyJobs 2027", fn: () => fetchSimplifyJobs("internship") },
+    { name: "Simplify New Grad", fn: () => fetchSimplifyJobs("placement") },
     { name: "ApplyGuy 2027", fn: fetchApplyGuy },
+    { name: "Surya Tracker", fn: fetchSuryaTracker },
+    { name: "FresherFlow India", fn: fetchFresherFlowIndia },
+    // ATS + boards (supplement)
     { name: "LinkedIn", fn: fetchLinkedIn },
     { name: "The Muse", fn: fetchTheMuse },
     { name: "Greenhouse", fn: fetchGreenhouseBoards },
@@ -997,14 +1249,12 @@ async function loadAllJobs() {
     );
   }
 
-  state.jobs = dedupeJobs(buckets).sort(
-    (a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0)
-  );
+  state.jobs = dedupeJobs([...buckets.filter(isITOpportunity), ...Object.values(state.savedJobs).filter(job => job && isApplied(job.id)).map(job => ({ ...job, publishedAt: job.publishedAt ? new Date(job.publishedAt) : null }))]).sort(compareJobsByTrackerPriority);
   state.lastFetch = new Date();
 }
 
 function formatDate(date) {
-  if (!date || Number.isNaN(date.getTime())) return "Recently posted";
+  if (!date || Number.isNaN(date.getTime())) return "Date not provided";
   return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
@@ -1027,21 +1277,30 @@ function applyFilters(jobs) {
   const selectedRoles = getSelectedRoles();
 
   let filtered = jobs.filter((job) => {
+    const type = document.getElementById("opportunityFilter")?.value || "all";
+    if (type !== "all" && job.opportunityType !== type) return false;
     if (q) {
       const hay = `${job.title} ${job.company} ${job.location} ${job.tags.join(" ")}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
 
     const region = regionOf(job);
+    const remote = isRemoteOpportunity(job);
     if (loc === "focus" && !matchesFocusRegions(job)) return false;
-    if (loc === "india" && !isIndiaOnly(job)) return false;
-    if (loc === "japan" && region !== "japan") return false;
-    if (loc === "europe" && region !== "europe") return false;
-    if (loc === "usa" && region !== "usa") return false;
-    if (
-      loc === "remote" &&
-      !(job.remote || REMOTE_RE.test(job.location || "") || WORLDWIDE_RE.test(job.location || ""))
-    ) {
+    // Country filters keep onsite roles there, plus remote/hybrid that mention that region
+    if (loc === "india" && !(isIndiaOnly(job) || (remote && INDIA_RE.test(job.location || "")))) {
+      return false;
+    }
+    if (loc === "japan" && !(region === "japan" || (remote && JAPAN_RE.test(job.location || "")))) {
+      return false;
+    }
+    if (loc === "europe" && !(region === "europe" || (remote && EUROPE_RE.test(job.location || "")))) {
+      return false;
+    }
+    if (loc === "usa" && !(region === "usa" || (remote && USA_RE.test(job.location || "")))) {
+      return false;
+    }
+    if (loc === "remote" && !remote) {
       return false;
     }
 
@@ -1062,16 +1321,62 @@ function applyFilters(jobs) {
   } else if (sort === "title") {
     filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
   } else {
-    // Newest first, but India openings surface at the top by default
+    // Tracker-priority + newest; India/focus regions still surface first when selected
     filtered = [...filtered].sort((a, b) => {
       const regionDiff =
         (REGION_PRIORITY[regionOf(a)] ?? 5) - (REGION_PRIORITY[regionOf(b)] ?? 5);
       if (loc === "focus" && regionDiff !== 0) return regionDiff;
-      return (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0);
+      return compareJobsByTrackerPriority(a, b);
     });
   }
 
   return filtered;
+}
+
+const GITHUB_SOURCES = {
+  "SimplifyJobs 2027": "https://github.com/SimplifyJobs/Summer2027-Internships",
+  "Simplify New Grad": "https://github.com/SimplifyJobs/New-Grad-Positions",
+  "ApplyGuy 2027": "https://github.com/ApplyGuy/2027-Internships",
+  "Surya Tracker": "https://github.com/SuryaHarikrishnan/2027-internship-tracker",
+  "FresherFlow India": "https://github.com/FresherFlow/India-Jobs-Internships",
+};
+
+function renderJobSource(job) {
+  const repository = GITHUB_SOURCES[job.source];
+  return repository
+    ? `<a href="${repository}" target="_blank" rel="noopener noreferrer" title="View GitHub source repository">${escapeHtml(job.source)} · GitHub ↗</a>`
+    : escapeHtml(job.source);
+}
+
+function renderSources() {
+  const sources = [
+    ...Object.entries(GITHUB_SOURCES).map(([name, url]) => ({ name, url, group: "GitHub feeds", detail: "Automatic listing feed" })),
+    ...[
+      ["LinkedIn", "https://www.linkedin.com/jobs/"],
+      ["The Muse", "https://www.themuse.com/jobs"],
+      ["Remote OK", "https://remoteok.com/"],
+      ["Jobicy", "https://jobicy.com/"],
+      ["Remotive", "https://remotive.com/"],
+      ["Arbeitnow", "https://www.arbeitnow.com/"],
+    ].map(([name, url]) => ({ name, url, group: "Job boards", detail: "Automatic listing feed; availability varies" })),
+    ...Object.entries(SOURCE_BOARDS).flatMap(([provider, boards]) => boards.map(board => ({
+      name: board.name,
+      url: provider === "greenhouse" ? `https://job-boards.greenhouse.io/${board.token}` : provider === "ashby" ? `https://jobs.ashbyhq.com/${board.token}` : `https://jobs.lever.co/${board.token}`,
+      group: "Company boards", detail: `${provider[0].toUpperCase() + provider.slice(1)} · Automatic listing feed`,
+    }))),
+    ...PORTALS.map(portal => ({ name: portal.name, url: portal.url, group: "Career portals", detail: `${portal.region} · Browse directly · ${portal.desc}` })),
+  ];
+  function update() {
+    const query = document.getElementById("sourceSearch").value.trim().toLowerCase();
+    const category = document.getElementById("sourceCategory").value;
+    const filtered = sources.filter(source => (category === "all" || source.group === category) && `${source.name} ${source.group} ${source.detail}`.toLowerCase().includes(query));
+    document.getElementById("sourcesCount").textContent = `${filtered.length} sources`;
+    document.getElementById("sourcesList").innerHTML = filtered.map(source => `<a class="source-directory-card" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer"><span class="source-category">${escapeHtml(source.group)}</span><h3>${escapeHtml(source.name)} <span aria-hidden="true">↗</span></h3><p>${escapeHtml(source.detail)}</p></a>`).join("");
+    document.getElementById("sourcesEmpty").hidden = filtered.length > 0;
+  }
+  document.getElementById("sourceSearch").addEventListener("input", update);
+  document.getElementById("sourceCategory").addEventListener("change", update);
+  update();
 }
 
 function renderJobs(jobs) {
@@ -1087,8 +1392,14 @@ function renderJobs(jobs) {
 
     const tagsHtml = job.tags
       .slice(0, 4)
-      .map((t) => `<span class="tag">${escapeHtml(t)}</span>`)
+      .map((t) => {
+        const remoteClass = /remote|hybrid/i.test(t) ? " tag-remote" : "";
+        return `<span class="tag${remoteClass}">${escapeHtml(t)}</span>`;
+      })
       .join("");
+    const remoteBadge = isFullyRemoteOpportunity(job)
+      ? `<span class="tag tag-remote">Remote</span>`
+      : "";
 
     li.innerHTML = `
       <div>
@@ -1097,11 +1408,12 @@ function renderJobs(jobs) {
         <div class="job-meta">
           <span>${escapeHtml(job.location)}</span>
           <span>${formatDate(job.publishedAt)}</span>
+          ${remoteBadge}
         </div>
         <div class="job-tags">${tagsHtml}${(job.roles || [])
           .map((r) => `<span class="tag tag-role">${escapeHtml(r.toUpperCase())}</span>`)
           .join("")}</div>
-        <p class="job-source">Source: ${escapeHtml(job.source)}</p>
+        <p class="job-source">${renderJobSource(job)}</p>
       </div>
       <div class="job-actions">
         <label class="applied-check">
@@ -1118,6 +1430,179 @@ function renderJobs(jobs) {
 
   els.resultCount.textContent = `${jobs.length} opening${jobs.length === 1 ? "" : "s"}`;
   els.sourceCount.textContent = `${state.sourcesOk}/${state.sourcesTried} sources online`;
+}
+
+function renderSheet(jobs) {
+  if (!els.sheetBody) return;
+
+  els.sheetBody.innerHTML = "";
+  if (els.sheetEmpty) els.sheetEmpty.hidden = jobs.length > 0;
+  if (els.sheetCount) {
+    els.sheetCount.textContent = `${jobs.length} row${jobs.length === 1 ? "" : "s"}`;
+  }
+
+  const frag = document.createDocumentFragment();
+
+  jobs.forEach((job) => {
+    const applied = isApplied(job.id);
+    const tr = document.createElement("tr");
+    tr.className = applied ? "is-applied" : "";
+    tr.dataset.jobId = job.id;
+
+    const rolesHtml = (job.roles || [])
+      .map((r) => `<span class="tag tag-role">${escapeHtml(r.toUpperCase())}</span>`)
+      .join("");
+
+    tr.innerHTML = `
+      <td class="sheet-applied-check">
+        <select class="sheet-status-select" aria-label="Application status for ${escapeHtml(job.title)}">${APPLICATION_STATUSES.map(status => `<option${getApplicationStatus(job.id) === status ? " selected" : ""}>${status}</option>`).join("")}</select>
+      </td>
+      <td class="sheet-role">${escapeHtml(job.title)}</td>
+      <td class="sheet-company">${escapeHtml(job.company)}</td>
+      <td>${escapeHtml(job.location)}</td>
+      <td><div class="sheet-roles">${rolesHtml || "—"}</div></td>
+      <td>
+        <input
+          type="text"
+          class="sheet-req-input"
+          value="${escapeHtml(getRequirement(job.id))}"
+          placeholder="GPA, visa, stack, deadline…"
+          aria-label="Requirements for ${escapeHtml(job.title)}"
+        />
+      </td>
+      <td>${renderJobSource(job)}</td>
+      <td>
+        <a class="sheet-link" href="${escapeHtml(job.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(job.url)}">
+          ${escapeHtml(job.url)}
+        </a>
+      </td>
+    `;
+    frag.appendChild(tr);
+  });
+
+  els.sheetBody.appendChild(frag);
+}
+
+function setViewMode(mode) {
+  const next = ["cards", "sheet", "portals", "profile", "sources"].includes(mode) ? mode : "cards";
+  state.viewMode = next;
+  document.body.dataset.section = next;
+  document.querySelectorAll(".app-sidebar [data-section]").forEach(button => {
+    if (button.dataset.section === next) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+  const profile = document.getElementById("applicationProfile");
+  if (profile) profile.open = next === "profile";
+  localStorage.setItem(VIEW_STORAGE_KEY, next);
+
+  const panels = {
+    sources: document.getElementById("sourcesSection"),
+    profile: document.getElementById("applicationProfile"),
+    cards: els.listingsCards,
+    sheet: els.sheetSection,
+    portals: document.getElementById("portals"),
+  };
+
+  Object.entries(panels).forEach(([key, panel]) => {
+    if (!panel) return;
+    const active = key === next;
+    panel.classList.toggle("is-hidden", !active);
+    panel.hidden = !active;
+  });
+
+  document.querySelectorAll("[data-workspace-tab]").forEach((btn) => {
+    const selected = btn.dataset.workspaceTab === next;
+    btn.classList.toggle("is-active", selected);
+    btn.setAttribute("aria-selected", selected ? "true" : "false");
+    btn.tabIndex = selected ? 0 : -1;
+  });
+}
+
+function bindWorkspaceTabs() {
+  const tabs = Array.from(document.querySelectorAll("[data-workspace-tab]"));
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => setViewMode(btn.dataset.workspaceTab));
+    btn.addEventListener("keydown", (event) => {
+      const idx = tabs.indexOf(btn);
+      if (idx < 0) return;
+      let nextIdx = idx;
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        nextIdx = (idx + 1) % tabs.length;
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        nextIdx = (idx - 1 + tabs.length) % tabs.length;
+      } else if (event.key === "Home") {
+        nextIdx = 0;
+      } else if (event.key === "End") {
+        nextIdx = tabs.length - 1;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const next = tabs[nextIdx];
+      next.focus();
+      setViewMode(next.dataset.workspaceTab);
+    });
+  });
+}
+
+function csvEscape(value) {
+  const str = String(value ?? "");
+  if (/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
+function exportSheetCsv(jobs) {
+  const headers = [
+    "Status",
+    "Role",
+    "Company",
+    "Location",
+    "Software roles",
+    "Requirements",
+    "Source",
+    "GitHub source repository",
+    "Exact apply link",
+  ];
+  const rows = jobs.map((job) =>
+    [
+      getApplicationStatus(job.id),
+      job.title,
+      job.company,
+      job.location,
+      (job.roles || []).join(" | "),
+      getRequirement(job.id),
+      job.source,
+      GITHUB_SOURCES[job.source] || "",
+      job.url,
+    ]
+      .map(csvEscape)
+      .join(",")
+  );
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `leads-opportunities-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function initSiteInfoPanel() {
+  if (!els.siteInfoInput) return;
+  els.siteInfoInput.value = loadSiteInfo();
+
+  let saveTimer = null;
+  els.siteInfoInput.addEventListener("input", () => {
+    localStorage.setItem(SITE_INFO_STORAGE_KEY, els.siteInfoInput.value);
+    if (els.siteInfoSaved) {
+      els.siteInfoSaved.hidden = false;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        els.siteInfoSaved.hidden = true;
+      }, 1200);
+    }
+  });
 }
 
 function renderPortals() {
@@ -1153,7 +1638,7 @@ function renderPortals() {
         )
         .join("");
       return `
-        <div class="portal-region">
+        <div class="portal-region" id="portals-${escapeHtml(region.toLowerCase().replace(/[^a-z]+/g, "-"))}">
           <h3 class="portal-region-title">${escapeHtml(region)}</h3>
           <ul class="portal-list">${cards}</ul>
         </div>`;
@@ -1166,22 +1651,25 @@ function updateMeta() {
     els.lastUpdated.textContent = "Checking sources…";
     return;
   }
-  els.lastUpdated.textContent = `Updated ${state.lastFetch.toLocaleString()} · ${state.sourcesOk}/${state.sourcesTried} portals & APIs · newest internship roles`;
+  els.lastUpdated.textContent = `Updated ${state.lastFetch.toLocaleString()} · ${state.sourcesOk}/${state.sourcesTried} live feeds · auto-refresh every 15 min`;
 }
 
 function refreshView() {
-  renderJobs(applyFilters(state.jobs));
+  const filtered = applyFilters(state.jobs);
+  renderJobs(filtered);
+  renderSheet(filtered);
 }
 
 function setRefreshBusy(busy) {
   for (const btn of refreshButtons()) {
     btn.classList.toggle("is-busy", busy);
+    // Text-only updates — never rewrite button HTML (that felt laggy)
     if (btn.id === "heroRefreshBtn") {
-      btn.textContent = busy ? "Updating from all portals…" : "Refresh latest openings";
-    } else {
-      const label = busy ? "Refreshing…" : "Refresh latest";
-      btn.innerHTML = `<span class="refresh-icon" aria-hidden="true"></span> ${label}`;
+      btn.textContent = busy ? "Updating…" : "Refresh latest";
+      continue;
     }
+    const label = btn.querySelector(".btn-label");
+    if (label) label.textContent = busy ? "Refreshing…" : "Refresh";
   }
 }
 
@@ -1189,12 +1677,16 @@ async function bootstrap(showLoading = true, scrollToList = false) {
   els.error.hidden = true;
   els.empty.hidden = true;
   if (showLoading) {
+    setViewMode("cards");
+    els.listingsCards?.classList.remove("is-hidden");
+    if (els.listingsCards) els.listingsCards.hidden = false;
     els.loading.hidden = false;
     els.jobList.innerHTML = "";
+    if (els.sheetBody) els.sheetBody.innerHTML = "";
   }
   setRefreshBusy(true);
   els.lastUpdated.textContent =
-    "Refreshing latest internship roles from LinkedIn, The Muse, Greenhouse, Ashby, Lever, Remote OK & more…";
+    "Refreshing live feeds from SimplifyJobs, ApplyGuy, Surya Tracker, FresherFlow India & company boards…";
 
   try {
     await loadAllJobs();
@@ -1211,15 +1703,78 @@ async function bootstrap(showLoading = true, scrollToList = false) {
     els.lastUpdated.textContent = "Fetch failed — click Refresh latest to try again";
   } finally {
     els.loading.hidden = true;
+    setViewMode(state.viewMode);
     setRefreshBusy(false);
   }
 }
 
+document.querySelectorAll("[data-browse-location]").forEach((button) => {
+  button.addEventListener("click", () => {
+    els.locationFilter.value = button.dataset.browseLocation;
+    setViewMode("cards");
+    refreshView();
+    document.getElementById("openings").scrollIntoView({ behavior: "smooth" });
+  });
+});
 els.searchInput.addEventListener("input", refreshView);
+function selectOpportunityTab(tab) {
+  document.getElementById("opportunityFilter").value = tab.dataset.opportunityTab;
+  document.querySelectorAll("[data-opportunity-tab]").forEach((button) => {
+    const selected = button === tab;
+    button.setAttribute("aria-selected", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+  const heading = document.getElementById("filtersHeading") || document.querySelector(".filters-heading");
+  if (heading) {
+    heading.textContent =
+      tab.dataset.opportunityTab === "internship"
+        ? "Internship openings"
+        : "Placement openings";
+  }
+  refreshView();
+}
+const opportunityTabs = Array.from(document.querySelectorAll("[data-opportunity-tab]"));
+opportunityTabs.forEach((tab, index) => {
+  tab.addEventListener("click", () => selectOpportunityTab(tab));
+  tab.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0 : event.key === "End" ? opportunityTabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + opportunityTabs.length) % opportunityTabs.length;
+    opportunityTabs[next].focus();
+    selectOpportunityTab(opportunityTabs[next]);
+  });
+});
 els.locationFilter.addEventListener("change", refreshView);
 els.sortFilter.addEventListener("change", refreshView);
 els.hideAppliedFilter.addEventListener("change", refreshView);
-document.getElementById("roleFilters").addEventListener("change", refreshView);
+function updateRolesSummary() {
+  const roles = Array.from(document.querySelectorAll('#roleFilters input[name="role"]'));
+  const count = roles.filter(input => input.checked).length;
+  document.getElementById("rolesSummary").textContent = count === roles.length ? "All roles selected" : count === 0 ? "No roles selected" : `${count} roles selected`;
+  const all = document.getElementById("selectAllRoles");
+  all.checked = count === roles.length;
+  all.indeterminate = count > 0 && count < roles.length;
+}
+document.getElementById("roleFilters").addEventListener("change", () => {
+  updateRolesSummary();
+  refreshView();
+});
+document.getElementById("selectAllRoles").addEventListener("change", (event) => {
+  document.querySelectorAll('#roleFilters input[name="role"]').forEach(input => { input.checked = event.target.checked; });
+  updateRolesSummary();
+  refreshView();
+});
+document.addEventListener("click", (event) => {
+  const dropdown = document.getElementById("rolesDropdown");
+  if (!dropdown.contains(event.target)) dropdown.open = false;
+});
+document.getElementById("rolesDropdown").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.currentTarget.open = false;
+    event.currentTarget.querySelector("summary").focus();
+  }
+});
+updateRolesSummary();
 els.jobList.addEventListener("change", (event) => {
   const toggle = event.target.closest(".applied-toggle");
   if (!toggle) return;
@@ -1234,7 +1789,61 @@ els.jobList.addEventListener("change", (event) => {
   }
 
   card.classList.toggle("is-applied", toggle.checked);
+  const sheetRow = els.sheetBody?.querySelector(
+    `tr[data-job-id="${CSS.escape(card.dataset.jobId)}"]`
+  );
+  if (sheetRow) {
+    sheetRow.classList.toggle("is-applied", toggle.checked);
+    const sheetStatus = sheetRow.querySelector(".sheet-status-select");
+    if (sheetStatus) sheetStatus.value = getApplicationStatus(card.dataset.jobId);
+  }
 });
+
+els.sheetBody?.addEventListener("change", (event) => {
+  const select = event.target.closest(".sheet-status-select");
+  if (!select) return;
+  const row = select.closest("tr");
+  if (!row?.dataset.jobId) return;
+  setApplicationStatus(row.dataset.jobId, select.value);
+  refreshView();
+});
+
+els.sheetBody?.addEventListener("change", (event) => {
+  const input = event.target.closest(".sheet-req-input");
+  if (!input) return;
+  const row = input.closest("tr");
+  if (!row?.dataset.jobId) return;
+  setRequirement(row.dataset.jobId, input.value);
+});
+
+document.querySelectorAll(".app-sidebar [data-section]").forEach(button => {
+  button.addEventListener("click", () => {
+    setViewMode(button.dataset.section);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+document.addEventListener("leads:open-profile", () => setViewMode("profile"));
+bindWorkspaceTabs();
+document.querySelector('a[href="#sheet"]')?.addEventListener("click", (event) => {
+  event.preventDefault();
+  setViewMode("sheet");
+  document.getElementById("workspace")?.scrollIntoView({ behavior: "smooth" });
+});
+document.querySelectorAll('a[href="#workspace"], a[href="#openings"]').forEach((link) => {
+  link.addEventListener("click", () => setViewMode("cards"));
+});
+document.querySelector('a[href="#portals"]')?.addEventListener("click", (event) => {
+  event.preventDefault();
+  setViewMode("portals");
+  document.getElementById("workspace")?.scrollIntoView({ behavior: "smooth" });
+});
+els.exportSheetBtn?.addEventListener("click", () => {
+  exportSheetCsv(applyFilters(state.jobs));
+});
+
+if (location.hash === "#sheet") setViewMode("sheet");
+else if (location.hash === "#portals") setViewMode("portals");
+
 function onRefreshClick() {
   bootstrap(true, true);
 }
@@ -1244,5 +1853,61 @@ els.heroRefreshBtn.addEventListener("click", onRefreshClick);
 els.listRefreshBtn.addEventListener("click", onRefreshClick);
 els.retryBtn.addEventListener("click", () => bootstrap(true, true));
 
+renderSources();
+initSiteInfoPanel();
+setViewMode(state.viewMode);
 renderPortals();
 bootstrap(true, false);
+
+// ApplyGuy-style cadence: re-pull community feeds quietly every 15 minutes
+setInterval(() => {
+  if (document.visibilityState === "hidden") return;
+  bootstrap(false, false);
+}, AUTO_REFRESH_MS);
+
+
+
+
+// Keep the sidebar below the actual navbar height, including wrapped mobile links.
+const appHeader = document.querySelector(".site-header");
+if (appHeader && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(entries => {
+    const height = Math.round(entries[0].target.getBoundingClientRect().height);
+    document.documentElement.style.setProperty("--app-header-height", `${height}px`);
+  }).observe(appHeader);
+}
+
+document.getElementById("footerSourcesLink")?.addEventListener("click", event => {
+  event.preventDefault();
+  setViewMode("sources");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+const sidebarDrawer = document.getElementById("workspaceSidebar");
+const sidebarToggle = document.getElementById("sidebarToggle");
+const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+function toggleSidebar(open) {
+  sidebarDrawer.hidden = !open;
+  sidebarBackdrop.hidden = !open;
+  document.body.classList.toggle("drawer-open", open);
+  sidebarToggle.setAttribute("aria-expanded", String(open));
+  for (const element of [document.querySelector("main"), document.querySelector(".site-header"), document.querySelector(".site-footer")]) {
+    if (element) element.inert = open;
+  }
+  if (open) document.getElementById("sidebarClose").focus();
+  else sidebarToggle.focus();
+}
+sidebarToggle.addEventListener("click", () => toggleSidebar(true));
+document.getElementById("sidebarClose").addEventListener("click", () => toggleSidebar(false));
+sidebarBackdrop.addEventListener("click", () => toggleSidebar(false));
+sidebarDrawer.addEventListener("click", event => {
+  if (event.target.closest("[data-section]")) toggleSidebar(false);
+});
+sidebarDrawer.addEventListener("keydown", event => {
+  if (event.key === "Escape") { toggleSidebar(false); return; }
+  if (event.key !== "Tab") return;
+  const buttons = [...sidebarDrawer.querySelectorAll("button")];
+  const first = buttons[0], last = buttons[buttons.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
